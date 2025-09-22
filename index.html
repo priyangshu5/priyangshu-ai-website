@@ -3,41 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Priyangshu AI - ChatGPT-like Interface</title>
+    <title>Priyangshu AI - ChatGPT Clone</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             height: 100vh;
-            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
         .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
             background: white;
-            height: calc(100vh - 20px);
             border-radius: 15px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .chat-header {
+        .header {
             padding: 20px;
             text-align: center;
-            border-bottom: 1px solid #e5e5e5;
-            background: #f7f7f8;
+            background: #007bff;
+            color: white;
             border-radius: 15px 15px 0 0;
         }
-        .messages-container {
+        .messages {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background: #f7f7f8;
+            background: #f8f9fa;
+        }
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        #sendBtn {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
         }
         .message {
-            margin-bottom: 15px;
+            margin: 10px 0;
             padding: 12px;
             border-radius: 10px;
-            max-width: 85%;
+            max-width: 80%;
         }
         .user-message {
             background: #007bff;
@@ -47,96 +73,46 @@
         }
         .ai-message {
             background: white;
-            border: 1px solid #e5e5e5;
+            border: 1px solid #ddd;
             margin-right: auto;
             border-bottom-left-radius: 2px;
         }
-        .input-container {
-            padding: 15px;
-            border-top: 1px solid #e5e5e5;
-            background: white;
-            border-radius: 0 0 15px 15px;
+        .loading {
+            text-align: center;
+            padding: 10px;
+            color: #666;
         }
-        .input-wrapper {
-            display: flex;
-            gap: 10px;
-        }
-        #messageInput {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            resize: none;
-            font-size: 16px;
-            max-height: 100px;
-        }
-        #sendButton {
-            padding: 12px 20px;
-            background: #007bff;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-        }
-        .loading { display: none; text-align: center; padding: 10px; }
-        .welcome-message { text-align: center; padding: 40px 20px; }
-        .example-prompt { 
-            background: white; 
-            padding: 10px; 
-            margin: 10px 0; 
-            border-radius: 8px; 
-            cursor: pointer;
-            border: 1px solid #e5e5e5;
-        }
-        img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">
-            <h1>Priyangshu AI</h1>
-            <p>Advanced AI Assistant by Priyangshu</p>
+        <div class="header">
+            <h1>🤖 Priyangshu AI</h1>
+            <p>ChatGPT-like AI Assistant</p>
         </div>
         
-        <div class="messages-container" id="messagesContainer">
-            <div class="welcome-message">
-                <h2>Welcome! 👋</h2>
-                <p>I'm Priyangshu AI. Chat with me or generate images!</p>
-                <div class="example-prompt" onclick="setPrompt('Hello! Who created you?')">"Who created you?"</div>
-                <div class="example-prompt" onclick="setPrompt('generate image beautiful sunset')">"Generate sunset image"</div>
-                <div class="example-prompt" onclick="setPrompt('Help me with coding')">"Help with coding"</div>
+        <div class="messages" id="messages">
+            <div class="message ai-message">
+                <strong>Priyangshu AI:</strong> Hello! I'm Priyangshu AI. How can I help you today?
             </div>
         </div>
 
-        <div class="loading" id="loading">
-            <div>Priyangshu AI is thinking... ⏳</div>
-        </div>
-
-        <div class="input-container">
-            <div class="input-wrapper">
-                <textarea id="messageInput" placeholder="Type your message... ('generate image' for images)" rows="1"></textarea>
-                <button id="sendButton" onclick="sendMessage()">Send</button>
-            </div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type your message here... (say 'generate image' for images)">
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
         const API_KEY = "ddc-a4f-d050829fd1f3437fbb6ca2dce414467a";
-        
-        function setPrompt(prompt) {
-            document.getElementById('messageInput').value = prompt;
-        }
 
-        function addMessage(sender, content) {
-            const container = document.getElementById('messagesContainer');
-            const welcome = container.querySelector('.welcome-message');
-            if (welcome) welcome.remove();
-            
+        function addMessage(sender, text) {
+            const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message`;
-            messageDiv.innerHTML = content;
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
+            messageDiv.innerHTML = `<strong>${sender === 'user' ? 'You' : 'Priyangshu AI'}:</strong> ${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
         async function sendMessage() {
@@ -145,10 +121,13 @@
             if (!message) return;
 
             input.value = '';
-            addMessage('user', `<strong>You:</strong> ${message}`);
-            
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('sendButton').disabled = true;
+            addMessage('user', message);
+
+            // Show loading
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.textContent = 'Priyangshu AI is thinking...';
+            document.getElementById('messages').appendChild(loadingDiv);
 
             try {
                 let response;
@@ -157,13 +136,14 @@
                 } else {
                     response = await chat(message);
                 }
-                addMessage('ai', `<strong>Priyangshu AI:</strong> ${response}`);
+                
+                // Remove loading
+                loadingDiv.remove();
+                addMessage('ai', response);
             } catch (error) {
-                addMessage('ai', `<strong>Priyangshu AI:</strong> Sorry, I encountered an error. Please try again.`);
+                loadingDiv.remove();
+                addMessage('ai', 'Sorry, I encountered an error. Please try again.');
             }
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('sendButton').disabled = false;
         }
 
         async function chat(message) {
@@ -202,23 +182,16 @@
             
             const data = await response.json();
             if (data.data && data.data[0].url) {
-                return `✅ Image generated!<br><img src="${data.data[0].url}" alt="Generated image">`;
+                return `✅ Image generated!<br><img src="${data.data[0].url}" style="max-width:100%;border-radius:8px;">`;
             }
-            return "❌ Image generation failed.";
+            return "❌ Image generation failed. Please try again.";
         }
 
         // Enter key support
         document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+            if (e.key === 'Enter') {
                 sendMessage();
             }
-        });
-
-        // Auto-resize textarea
-        document.getElementById('messageInput').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
         });
     </script>
 </body>
