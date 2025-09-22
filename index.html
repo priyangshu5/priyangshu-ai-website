@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priyangshu AI - ChatGPT-like Interface</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            padding: 10px;
+        }
+        .chat-container {
+            background: white;
+            height: calc(100vh - 20px);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .chat-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #e5e5e5;
+            background: #f7f7f8;
+            border-radius: 15px 15px 0 0;
+        }
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f7f7f8;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+        .ai-message {
+            background: white;
+            border: 1px solid #e5e5e5;
+            margin-right: auto;
+            border-bottom-left-radius: 2px;
+        }
+        .input-container {
+            padding: 15px;
+            border-top: 1px solid #e5e5e5;
+            background: white;
+            border-radius: 0 0 15px 15px;
+        }
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: none;
+            font-size: 16px;
+            max-height: 100px;
+        }
+        #sendButton {
+            padding: 12px 20px;
+            background: #007bff;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+        .loading { display: none; text-align: center; padding: 10px; }
+        .welcome-message { text-align: center; padding: 40px 20px; }
+        .example-prompt { 
+            background: white; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            cursor: pointer;
+            border: 1px solid #e5e5e5;
+        }
+        img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Priyangshu AI</h1>
+            <p>Advanced AI Assistant by Priyangshu</p>
+        </div>
+        
+        <div class="messages-container" id="messagesContainer">
+            <div class="welcome-message">
+                <h2>Welcome! 👋</h2>
+                <p>I'm Priyangshu AI. Chat with me or generate images!</p>
+                <div class="example-prompt" onclick="setPrompt('Hello! Who created you?')">"Who created you?"</div>
+                <div class="example-prompt" onclick="setPrompt('generate image beautiful sunset')">"Generate sunset image"</div>
+                <div class="example-prompt" onclick="setPrompt('Help me with coding')">"Help with coding"</div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div>Priyangshu AI is thinking... ⏳</div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea id="messageInput" placeholder="Type your message... ('generate image' for images)" rows="1"></textarea>
+                <button id="sendButton" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "ddc-a4f-d050829fd1f3437fbb6ca2dce414467a";
+        
+        function setPrompt(prompt) {
+            document.getElementById('messageInput').value = prompt;
+        }
+
+        function addMessage(sender, content) {
+            const container = document.getElementById('messagesContainer');
+            const welcome = container.querySelector('.welcome-message');
+            if (welcome) welcome.remove();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.innerHTML = content;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            addMessage('user', `<strong>You:</strong> ${message}`);
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('sendButton').disabled = true;
+
+            try {
+                let response;
+                if (message.toLowerCase().includes('generate image')) {
+                    response = await generateImage(message);
+                } else {
+                    response = await chat(message);
+                }
+                addMessage('ai', `<strong>Priyangshu AI:</strong> ${response}`);
+            } catch (error) {
+                addMessage('ai', `<strong>Priyangshu AI:</strong> Sorry, I encountered an error. Please try again.`);
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('sendButton').disabled = false;
+        }
+
+        async function chat(message) {
+            const response = await fetch('https://api.a4f.co/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "provider-3/gpt-4o-mini",
+                    messages: [{role: "user", content: message}],
+                    temperature: 0.7
+                })
+            });
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        async function generateImage(message) {
+            const prompt = message.replace(/generate image/gi, '').trim();
+            const response = await fetch('https://api.a4f.co/v1/images/generations', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "provider-4/imagen-4",
+                    prompt: prompt,
+                    n: 1,
+                    size: "1024x1024"
+                })
+            });
+            
+            const data = await response.json();
+            if (data.data && data.data[0].url) {
+                return `✅ Image generated!<br><img src="${data.data[0].url}" alt="Generated image">`;
+            }
+            return "❌ Image generation failed.";
+        }
+
+        // Enter key support
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+    </script>
+</body>
+</html>
